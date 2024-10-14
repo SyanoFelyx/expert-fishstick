@@ -1,56 +1,58 @@
-<html><head><base href="https://websim.io/dark-mode-csv-xlsx-search-shortcut-no-duplicates-no-title/">
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CSV/XLSX Buscador Offline - Modo Escuro</title>
-<link rel="manifest" href="manifest.json">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
-<style>
-  body {
-    font-family: Arial, sans-serif;
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 20px;
-    background-color: #121212;
-    color: #e0e0e0;
-  }
-  #searchInput {
-    display: block;
-    width: 100%;
-    padding: 10px;
-    margin: 10px 0;
-    border: 1px solid #333;
-    border-radius: 4px;
-    background-color: #1e1e1e;
-    color: #e0e0e0;
-  }
-  #results {
-    background-color: #1e1e1e;
-    border: 1px solid #333;
-    border-radius: 4px;
-    padding: 10px;
-    margin-top: 20px;
-  }
-  table {
-    width: 100%;
-    border-collapse: collapse;
-  }
-  td {
-    border: 1px solid #333;
-    padding: 8px;
-    text-align: left;
-  }
-  #importInfo {
-    margin-top: 10px;
-    font-size: 0.9em;
-    color: #bb86fc;
-  }
-  #stats {
-    margin-top: 10px;
-    font-size: 0.9em;
-    color: #03dac6;
-  }
-</style>
+<html>
+<head>
+  <base href="https://websim.io/dark-mode-csv-xlsx-search-shortcut-no-duplicates-no-title/">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CSV/XLSX Buscador Offline - Modo Escuro</title>
+  <link rel="manifest" href="manifest.json">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #121212;
+      color: #e0e0e0;
+    }
+    #searchInput {
+      display: block;
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      border: 1px solid #333;
+      border-radius: 4px;
+      background-color: #1e1e1e;
+      color: #e0e0e0;
+    }
+    #results {
+      background-color: #1e1e1e;
+      border: 1px solid #333;
+      border-radius: 4px;
+      padding: 10px;
+      margin-top: 20px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    td {
+      border: 1px solid #333;
+      padding: 8px;
+      text-align: left;
+    }
+    #importInfo {
+      margin-top: 10px;
+      font-size: 0.9em;
+      color: #bb86fc;
+    }
+    #stats {
+      margin-top: 10px;
+      font-size: 0.9em;
+      color: #03dac6;
+    }
+  </style>
 </head>
 <body>
   <input type="text" id="searchInput" placeholder="Digite para buscar, 'importar' para carregar, ou 'atualizar' para atualizar">
@@ -181,16 +183,8 @@
       // Atualiza as estatísticas
       // statsDiv.innerHTML = `Total de linhas: ${data.length} | Resultados exibidos: ${results.length}`;
     }
-
-    // Adiciona suporte a Service Worker para funcionamento offline completo
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', function() {
-        navigator.serviceWorker.register('service-worker.js').then(function(registration) {
-          console.log('ServiceWorker registration successful with scope: ', registration.scope);
-        }, function(err) {
-          console.log('ServiceWorker registration failed: ', err);
-        });
-      });
-    }
   </script>
-</body></html>
+
+  <script src="sw.js"></script>
+</body>
+</html>
