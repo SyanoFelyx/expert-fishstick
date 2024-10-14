@@ -1,23 +1,196 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="shortcut icon" href="icon.png" type="image/x-icon">
-    
-    <!-- modify -->
-    <title>Title</title>
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#33ffcc"/>
-    <!-- /manifest -->
+<html><head><base href="https://websim.io/dark-mode-csv-xlsx-search-shortcut-no-duplicates-no-title/">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CSV/XLSX Buscador Offline - Modo Escuro</title>
+<link rel="manifest" href="manifest.json">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    background-color: #121212;
+    color: #e0e0e0;
+  }
+  #searchInput {
+    display: block;
+    width: 100%;
+    padding: 10px;
+    margin: 10px 0;
+    border: 1px solid #333;
+    border-radius: 4px;
+    background-color: #1e1e1e;
+    color: #e0e0e0;
+  }
+  #results {
+    background-color: #1e1e1e;
+    border: 1px solid #333;
+    border-radius: 4px;
+    padding: 10px;
+    margin-top: 20px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  td {
+    border: 1px solid #333;
+    padding: 8px;
+    text-align: left;
+  }
+  #importInfo {
+    margin-top: 10px;
+    font-size: 0.9em;
+    color: #bb86fc;
+  }
+  #stats {
+    margin-top: 10px;
+    font-size: 0.9em;
+    color: #03dac6;
+  }
+</style>
 </head>
 <body>
-    
-    <h1>it works.</h1>
+  <input type="text" id="searchInput" placeholder="Digite para buscar, 'importar' para carregar, ou 'atualizar' para atualizar">
+  <div id="importInfo"></div>
+  <div id="stats"></div>
+  <div id="results"></div>
 
-    <!-- load service worker -->
-    <script src="app.js"></script>
-    <!-- /load service worker -->
-</body>
-</html>
+  <script>
+    let data = [];
+
+    // Verifica se há dados salvos no localStorage
+    if (localStorage.getItem('fileData')) {
+      data = JSON.parse(localStorage.getItem('fileData'));
+      displayResults(data);
+    }
+
+    // Função para importar arquivo
+    function importFile(isUpdate = false) {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.csv,.xlsx';
+      input.onchange = function(e) {
+        const file = e.target.files[0];
+        const fileExt = file.name.split('.').pop().toLowerCase();
+
+        if (fileExt === 'csv') {
+          Papa.parse(file, {
+            complete: function(results) {
+              processImportedData(results.data, isUpdate);
+            }
+          });
+        } else if (fileExt === 'xlsx') {
+          const reader = new FileReader();
+          reader.onload = function(e) {
+            const workbook = XLSX.read(e.target.result, {type: 'binary'});
+            const sheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[sheetName];
+            const importedData = XLSX.utils.sheet_to_json(worksheet, {header: 1});
+            processImportedData(importedData, isUpdate);
+          };
+          reader.readAsBinaryString(file);
+        }
+      };
+      input.click();
+    }
+
+    function processImportedData(importedData, isUpdate) {
+      // Remove o título (primeira linha)
+      importedData.shift();
+
+      if (isUpdate) {
+        // Atualiza os dados existentes ou adiciona novos
+        importedData.forEach(row => {
+          if (row.length >= 3) {
+            const code = row[0];
+            const value = parseFloat(row[2]);
+            const existingIndex = data.findIndex(item => item[0] === code);
+            if (existingIndex !== -1) {
+              // Atualiza o valor existente
+              data[existingIndex][2] = value;
+            } else {
+              // Adiciona nova linha
+              data.push(row);
+            }
+          }
+        });
+      } else {
+        // Importação normal
+        data = removeDuplicates(importedData);
+      }
+
+      saveAndDisplayData(data);
+    }
+
+    function removeDuplicates(dataArray) {
+      const uniqueSet = new Set(dataArray.map(JSON.stringify));
+      return Array.from(uniqueSet).map(JSON.parse);
+    }
+
+    function saveAndDisplayData(data) {
+      // Salva os dados no localStorage
+      localStorage.setItem('fileData', JSON.stringify(data));
+      displayResults(data);
+    }
+
+    document.getElementById('searchInput').addEventListener('input', function(e) {
+      const searchTerm = e.target.value.toLowerCase();
+      if (searchTerm === 'importar') {
+        importFile(false);
+        e.target.value = ''; // Limpa o campo de busca
+        return;
+      } else if (searchTerm === 'atualizar') {
+        importFile(true);
+        e.target.value = ''; // Limpa o campo de busca
+        return;
+      }
+      const filteredData = data.filter(row => 
+        row && Array.isArray(row) && row.some(cell => cell && cell.toString().toLowerCase().includes(searchTerm))
+      );
+      displayResults(filteredData);
+    });
+
+    function displayResults(results) {
+      const resultsDiv = document.getElementById('results');
+      const statsDiv = document.getElementById('stats');
+      
+      if (!results || results.length === 0) {
+        resultsDiv.innerHTML = '<p>Nenhum resultado encontrado.</p>';
+        statsDiv.innerHTML = '';
+        return;
+      }
+
+      let tableHTML = '<table>';
+
+      results.forEach(row => {
+        if (row && Array.isArray(row)) {
+          tableHTML += '<tr>';
+          row.forEach(cell => {
+            tableHTML += `<td>${cell !== null && cell !== undefined ? cell : ''}</td>`;
+          });
+          tableHTML += '</tr>';
+        }
+      });
+
+      tableHTML += '</table>';
+      resultsDiv.innerHTML = tableHTML;
+
+      // Atualiza as estatísticas
+      // statsDiv.innerHTML = `Total de linhas: ${data.length} | Resultados exibidos: ${results.length}`;
+    }
+
+    // Adiciona suporte a Service Worker para funcionamento offline completo
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('service-worker.js').then(function(registration) {
+          console.log('ServiceWorker registration successful with scope: ', registration.scope);
+        }, function(err) {
+          console.log('ServiceWorker registration failed: ', err);
+        });
+      });
+    }
+  </script>
+</body></html>
