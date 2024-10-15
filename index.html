@@ -1,208 +1,349 @@
-<html>
-<head>
-<base href="https://websim.io/dark-mode-csv-xlsx-search-shortcut-no-duplicates-no-title/">
+<html><head><base href="https://websim.io/task-manager/">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Buscador Produtos</title>
-<link rel="manifest" href="manifest.json">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
+<title>Tarefas</title>
 <style>
-  body {
-    font-family: Arial, sans-serif;
-    max-width: 1500px;
-    margin: 0 auto;
-    padding: 20px;
-    background-color: #121212;
-    color: #e0e0e0;
+  body, html {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    font-family: 'Helvetica';
+    transition: background-color 0.3s, color 0.3s;
   }
-  #searchInput {
+  body {
+    background-color: #f0f0f0;
+    color: #333;
+  }
+  body.dark-mode {
+    background-color: #2c2c2c;
+    color: #f0f0f0;
+  }
+  .notebook {
+    width: 90%;
+    max-width: 800px;
+    margin: 20px auto;
+    background-color: white;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    padding: 20px;
+    position: relative;
+    min-height: calc(100vh - 40px);
+    transition: background-color 0.3s, box-shadow 0.3s;
+  }
+  .dark-mode .notebook {
+    background-color: #3c3c3c;
+    box-shadow: 0 0 10px rgba(255,255,255,0.1);
+  }
+  .notebook::before {
+    content: '';
+    position: absolute;
+    left: 40px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background-color: #ff9999;
+  }
+  .dark-mode .notebook::before {
+    background-color: #ff6666;
+  }
+  .line {
+    height: 30px;
+    border-bottom: 1px solid #e0e0e0;
+    line-height: 30px;
+    position: relative;
+  }
+  .dark-mode .line {
+    border-bottom-color: #555;
+  }
+  .task-input, .task-edit-input {
+    width: calc(100% - 60px);
+    margin-left: 60px;
+    border: none;
+    outline: none;
+    font-family: inherit;
+    font-size: 16px;
+    background-color: transparent;
+    color: inherit;
+  }
+  .task-item {
+    display: flex;
+    align-items: center;
+  }
+  .task-checkbox {
+    margin-left: 10px;
+    margin-right: 10px;
+  }
+  .task-text {
+    flex-grow: 1;
+    transition: all 0.3s ease;
+    cursor: pointer;
+  }
+  .task-text:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+  }
+  .dark-mode .task-text:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+  }
+  .task-delete {
+    background: none;
+    border: none;
+    color: #ff6666;
+    cursor: pointer;
+    font-size: 18px;
+    padding: 0 10px;
+  }
+  h1 {
+    text-align: center;
+    color: inherit;
+    margin-bottom: 20px;
+  }
+  .completed .task-text {
+    text-decoration: line-through;
+    color: #888;
+  }
+  .dark-mode .completed .task-text {
+    color: #aaa;
+  }
+  .import-info {
+    text-align: center;
+    margin-top: 20px;
+    font-style: italic;
+    color: #666;
+  }
+  .dark-mode .import-info {
+    color: #aaa;
+  }
+  .status-message {
+    text-align: center;
+    margin-top: 10px;
+    font-size: 14px;
+    color: #4CAF50;
+  }
+  .dark-mode .status-message {
+    color: #81c784;
+  }
+  .theme-toggle {
     position: fixed;
     top: 20px;
-    left: 20px;
     right: 20px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 24px;
     z-index: 1000;
-    padding: 15px;
-    border: 1px solid #333;
-    border-radius: 4px;
-    background-color: #1e1e1e;
-    color: #e0e0e0;
   }
-  #results {
-    background-color: #1e1e1e;
-    border: 1px solid #333;
-    border-radius: 4px;
-    padding: 10px;
-    margin-top: 100px;
+  .copyable {
+    background-color: rgba(255, 255, 0, 0.2);
+    cursor: copy;
   }
-  table {
-    width: 100%;
-    border-collapse: collapse;
-  }
-  td {
-    border: 1px solid #333;
-    padding: 8px;
-    text-align: left;
-  }
-  tr:nth-child(even) {
-    background-color: #2e2e2e; /* Cor de fundo para linhas pares */
-  }
-  tr:nth-child(odd) {
-    background-color: #1e1e1e; /* Cor de fundo para linhas ímpares */
-  }
-  #importInfo {
-    margin-top: 10px;
-    font-size: 0.9em;
-    color: #bb86fc;
-  }
-  #stats {
-    margin-top: 10px;
-    font-size: 0.9em;
-    color: #03dac6;
+  .dark-mode .copyable {
+    background-color: rgba(255, 255, 0, 0.1);
   }
 </style>
 </head>
 <body>
-  <input type="text" id="searchInput" placeholder="Digite para buscar, 'importar' para carregar, ou 'atualizar' para atualizar">
-  <div id="importInfo"></div>
-  <div id="stats"></div>
-  <div id="results"></div>
-
-  <script>
-    let data = [];
-
-    // Verifica se há dados salvos no localStorage
-    if (localStorage.getItem('fileData')) {
-      data = JSON.parse(localStorage.getItem('fileData'));
-      displayResults(data);
+  <button id="theme-toggle" class="theme-toggle" aria-label="Alternar tema">☀️</button>
+  <div class="notebook">
+    <h1>Tarefas</h1>
+    <div id="task-list">
+      <!-- Tarefas serão adicionadas aqui -->
+    </div>
+    <div class="line">
+      <input type="text" id="new-task" class="task-input" placeholder="Adicione uma nova tarefa...">
+    </div>
+    <div class="import-info">
       
-      // Carrega a data da última importação
-      const lastImportDate = localStorage.getItem('lastImportDate');
-      if (lastImportDate) {
-        document.getElementById('searchInput').placeholder = `Última importação: ${lastImportDate}`;
-      }
+    </div>
+    <div id="status-message" class="status-message"></div>
+  </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const taskList = document.getElementById('task-list');
+  const newTaskInput = document.getElementById('new-task');
+  const statusMessage = document.getElementById('status-message');
+  const themeToggle = document.getElementById('theme-toggle');
+
+  let tasks = [];
+  let isDarkMode = false;
+  let isEditing = false;
+
+  function toggleTheme() {
+    isDarkMode = !isDarkMode;
+    document.body.classList.toggle('dark-mode', isDarkMode);
+    themeToggle.textContent = isDarkMode ? '🌙' : '☀️';
+    localStorage.setItem('darkMode', isDarkMode);
+  }
+
+  themeToggle.addEventListener('click', toggleTheme);
+
+  // Carregar preferência de tema
+  if (localStorage.getItem('darkMode') === 'true') {
+    toggleTheme();
+  }
+
+  function showStatus(message) {
+    statusMessage.textContent = message;
+    setTimeout(() => {
+      statusMessage.textContent = '';
+    }, 3000);
+  }
+
+  function saveTasks() {
+    localStorage.setItem('tasks', JSON.stringify(tasks));
+    showStatus('Tarefas salvas automaticamente');
+  }
+
+  function loadTasks() {
+    const savedTasks = localStorage.getItem('tasks');
+    if (savedTasks) {
+      tasks = JSON.parse(savedTasks);
+      renderTasks();
+      showStatus('Tarefas carregadas');
     }
+  }
 
-    // Função para importar arquivo
-    function importFile(isUpdate = false) {
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = '.csv,.xlsx';
-      input.onchange = function(e) {
-        const file = e.target.files[0];
-        const fileExt = file.name.split('.').pop().toLowerCase();
-
-        if (fileExt === 'csv') {
-          Papa.parse(file, {
-            complete: function(results) {
-              processImportedData(results.data, isUpdate);
-            }
-          });
-        } else if (fileExt === 'xlsx') {
-          const reader = new FileReader();
-          reader.onload = function(e) {
-            const workbook = XLSX.read(e.target.result, {type: 'binary'});
-            const sheetName = workbook.SheetNames[0];
-            const worksheet = workbook.Sheets[sheetName];
-            const importedData = XLSX.utils.sheet_to_json(worksheet, {header: 1});
-            processImportedData(importedData, isUpdate);
-          };
-          reader.readAsBinaryString(file);
-        }
-      };
-      input.click();
-    }
-
-    function processImportedData(importedData, isUpdate) {
-      // Remove o título (primeira linha)
-      importedData.shift();
-
-      if (isUpdate) {
-        // Atualiza os dados existentes ou adiciona novos
-        importedData.forEach(row => {
-          if (row.length >= 3) {
-            const code = row[0];
-            const value = row[2]; // Mantenha o valor como string
-            const existingIndex = data.findIndex(item => item[0] === code);
-            if (existingIndex !== -1) {
-              // Atualiza o valor existente
-              data[existingIndex][2] = value; // Mantenha como string
-            } else {
-              // Adiciona nova linha
-              data.push(row);
-            }
-          }
-        });
-      } else {
-        // Importação normal
-        data = removeDuplicates(importedData);
-      }
-      saveAndDisplayData(data);
-    }
-
-    function removeDuplicates(dataArray) {
-      const uniqueSet = new Set(dataArray.map(JSON.stringify));
-      return Array.from(uniqueSet).map(JSON.parse);
-    }
-
-    function saveAndDisplayData(data) {
-      // Salva os dados no localStorage
-      localStorage.setItem('fileData', JSON.stringify(data));
-      
-      // Armazena a data da última importação/atualização
-      const currentDate = new Date().toLocaleString();
-      localStorage.setItem('lastImportDate', currentDate);
-
-      // Atualiza o placeholder do input
-      document.getElementById('searchInput').placeholder = `Última importação: ${currentDate}`;
-
-      displayResults(data);
-    }
-
-    document.getElementById('searchInput').addEventListener('input', function(e) {
-      const searchTerm = e.target.value.toLowerCase();
-      if (searchTerm === 'importar') {
-        importFile(false);
-        e.target.value = ''; // Limpa o campo de busca
-        return;
-      } else if (searchTerm === 'atualizar') {
-        importFile(true);
-        e.target.value = ''; // Limpa o campo de busca
-        return;
-      }
-      const filteredData = data.filter(row => 
-        row && Array.isArray(row) && row.some(cell => cell && cell.toString().toLowerCase().includes(searchTerm))
-      );
-      displayResults(filteredData);
+  function renderTasks() {
+    taskList.innerHTML = '';
+    
+    tasks.sort((a, b) => {
+      if (a.completed === b.completed) return 0;
+      return a.completed ? 1 : -1;
     });
 
-    function displayResults(results) {
-      const resultsDiv = document.getElementById('results');
-      const statsDiv = document.getElementById('stats');
+    tasks.forEach((task, index) => {
+      const taskElement = document.createElement('div');
+      taskElement.className = `line task-item ${task.completed ? 'completed' : ''}`;
       
-      if (!results || results.length === 0) {
-        resultsDiv.innerHTML = '<p>Nenhum resultado encontrado.</p>';
-        statsDiv.innerHTML = '';
-        return;
-      }
+      const taskTextHtml = task.text.replace(/\*(.*?)\*/g, '<span class="copyable">$1</span>');
+      
+      taskElement.innerHTML = `
+        <input type="checkbox" class="task-checkbox" ${task.completed ? 'checked' : ''}>
+        <span class="task-text">${taskTextHtml}</span>
+        <button class="task-delete">&times;</button>
+      `;
 
-      let tableHTML = '<table>';
+      const checkbox = taskElement.querySelector('.task-checkbox');
+      checkbox.addEventListener('change', () => {
+        task.completed = checkbox.checked;
+        renderTasks();
+        saveTasks();
+      });
 
-      results.forEach(row => {
-        if (row && Array.isArray(row)) {
-          tableHTML += '<tr>';
-          row.forEach(cell => {
-            tableHTML += `<td>${cell !== null && cell !== undefined ? cell : ''}</td>`;
-          });
-          tableHTML += '</tr>';
+      const taskText = taskElement.querySelector('.task-text');
+      taskText.addEventListener('click', (e) => {
+        if (e.target.classList.contains('copyable')) {
+          const textToCopy = e.target.textContent;
+          navigator.clipboard.writeText(textToCopy);
+        } else {
+          startEditing(taskText, task, index);
         }
       });
-      tableHTML += '</table>';
-      resultsDiv.innerHTML = tableHTML;
-      // Atualiza as estatísticas
-      // statsDiv.innerHTML = `Resultados: ${results.length}`;
+
+      const deleteButton = taskElement.querySelector('.task-delete');
+      deleteButton.addEventListener('click', () => {
+        tasks.splice(index, 1);
+        renderTasks();
+        saveTasks();
+      });
+
+      taskList.appendChild(taskElement);
+    });
+  }
+
+  function startEditing(taskText, task, index) {
+    if (isEditing) return;
+    isEditing = true;
+    
+    const currentText = task.text;
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'task-edit-input';
+    input.value = currentText;
+
+    taskText.replaceWith(input);
+    input.focus();
+
+    function finishEditing() {
+      isEditing = false;
+      const newText = input.value.trim();
+      if (newText && newText !== currentText) {
+        task.text = newText;
+        saveTasks();
+      }
+      renderTasks();
     }
-    // Adiciona suporte a Service Worker para funcionamento offline completo
-  </script>
-</body>
-</html>
+
+    input.addEventListener('blur', finishEditing);
+    input.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        finishEditing();
+      }
+    });
+  }
+
+  newTaskInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter' && newTaskInput.value.trim() !== '') {
+      tasks.push({ text: newTaskInput.value.trim(), completed: false });
+      newTaskInput.value = '';
+      renderTasks();
+      saveTasks();
+    }
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.ctrlKey && e.key === 'i') {
+      e.preventDefault();
+      importTasks();
+    } else if (!e.ctrlKey && !e.altKey && !e.metaKey && e.key.length === 1 && !isEditing) {
+      // Focar no campo de entrada se o usuário começar a digitar e não estiver editando
+      newTaskInput.focus();
+    }
+  });
+
+  function importTasks() {
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = '.txt';
+    fileInput.style.display = 'none';
+
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const content = e.target.result;
+          const newTasks = content.split('\n')
+            .map(line => line.trim())
+            .filter(line => line !== '')
+            .map(text => ({ text, completed: false }));
+          
+          tasks = [...tasks, ...newTasks];
+          renderTasks();
+          saveTasks();
+          showStatus('Tarefas importadas com sucesso');
+        };
+        reader.readAsText(file);
+      }
+    });
+
+    document.body.appendChild(fileInput);
+    fileInput.click();
+    document.body.removeChild(fileInput);
+  }
+
+  // Carregar tarefas ao iniciar
+  loadTasks();
+
+  // Configurar o Service Worker para funcionar offline
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('service-worker.js')
+      .then(registration => {
+        console.log('Service Worker registrado com sucesso:', registration);
+      })
+      .catch(error => {
+        console.log('Falha ao registrar o Service Worker:', error);
+      });
+  }
+});
+</script>
+</body></html>
