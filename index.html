@@ -1,58 +1,66 @@
 <html>
 <head>
-  <base href="https://websim.io/dark-mode-csv-xlsx-search-shortcut-no-duplicates-no-title/">
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CSV/XLSX Buscador Offline - Modo Escuro</title>
-  <link rel="manifest" href="manifest.json">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      max-width: 800px;
-      margin: 0 auto;
-      padding: 20px;
-      background-color: #121212;
-      color: #e0e0e0;
-    }
-    #searchInput {
-      display: block;
-      width: 100%;
-      padding: 10px;
-      margin: 10px 0;
-      border: 1px solid #333;
-      border-radius: 4px;
-      background-color: #1e1e1e;
-      color: #e0e0e0;
-    }
-    #results {
-      background-color: #1e1e1e;
-      border: 1px solid #333;
-      border-radius: 4px;
-      padding: 10px;
-      margin-top: 20px;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-    td {
-      border: 1px solid #333;
-      padding: 8px;
-      text-align: left;
-    }
-    #importInfo {
-      margin-top: 10px;
-      font-size: 0.9em;
-      color: #bb86fc;
-    }
-    #stats {
-      margin-top: 10px;
-      font-size: 0.9em;
-      color: #03dac6;
-    }
-  </style>
+<base href="https://websim.io/dark-mode-csv-xlsx-search-shortcut-no-duplicates-no-title/">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Buscador Produtos</title>
+<link rel="manifest" href="manifest.json">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    max-width: 1500px;
+    margin: 0 auto;
+    padding: 20px;
+    background-color: #121212;
+    color: #e0e0e0;
+  }
+  #searchInput {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    right: 20px;
+    z-index: 1000;
+    padding: 15px;
+    border: 1px solid #333;
+    border-radius: 4px;
+    background-color: #1e1e1e;
+    color: #e0e0e0;
+  }
+  #results {
+    background-color: #1e1e1e;
+    border: 1px solid #333;
+    border-radius: 4px;
+    padding: 10px;
+    margin-top: 100px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  td {
+    border: 1px solid #333;
+    padding: 8px;
+    text-align: left;
+  }
+  tr:nth-child(even) {
+    background-color: #2e2e2e; /* Cor de fundo para linhas pares */
+  }
+  tr:nth-child(odd) {
+    background-color: #1e1e1e; /* Cor de fundo para linhas ímpares */
+  }
+  #importInfo {
+    margin-top: 10px;
+    font-size: 0.9em;
+    color: #bb86fc;
+  }
+  #stats {
+    margin-top: 10px;
+    font-size: 0.9em;
+    color: #03dac6;
+  }
+</style>
 </head>
 <body>
   <input type="text" id="searchInput" placeholder="Digite para buscar, 'importar' para carregar, ou 'atualizar' para atualizar">
@@ -67,6 +75,12 @@
     if (localStorage.getItem('fileData')) {
       data = JSON.parse(localStorage.getItem('fileData'));
       displayResults(data);
+      
+      // Carrega a data da última importação
+      const lastImportDate = localStorage.getItem('lastImportDate');
+      if (lastImportDate) {
+        document.getElementById('searchInput').placeholder = `Última importação: ${lastImportDate}`;
+      }
     }
 
     // Função para importar arquivo
@@ -108,11 +122,11 @@
         importedData.forEach(row => {
           if (row.length >= 3) {
             const code = row[0];
-            const value = parseFloat(row[2]);
+            const value = row[2]; // Mantenha o valor como string
             const existingIndex = data.findIndex(item => item[0] === code);
             if (existingIndex !== -1) {
               // Atualiza o valor existente
-              data[existingIndex][2] = value;
+              data[existingIndex][2] = value; // Mantenha como string
             } else {
               // Adiciona nova linha
               data.push(row);
@@ -123,7 +137,6 @@
         // Importação normal
         data = removeDuplicates(importedData);
       }
-
       saveAndDisplayData(data);
     }
 
@@ -135,6 +148,14 @@
     function saveAndDisplayData(data) {
       // Salva os dados no localStorage
       localStorage.setItem('fileData', JSON.stringify(data));
+      
+      // Armazena a data da última importação/atualização
+      const currentDate = new Date().toLocaleString();
+      localStorage.setItem('lastImportDate', currentDate);
+
+      // Atualiza o placeholder do input
+      document.getElementById('searchInput').placeholder = `Última importação: ${currentDate}`;
+
       displayResults(data);
     }
 
@@ -176,15 +197,12 @@
           tableHTML += '</tr>';
         }
       });
-
       tableHTML += '</table>';
       resultsDiv.innerHTML = tableHTML;
-
       // Atualiza as estatísticas
-      // statsDiv.innerHTML = `Total de linhas: ${data.length} | Resultados exibidos: ${results.length}`;
+      // statsDiv.innerHTML = `Resultados: ${results.length}`;
     }
+    // Adiciona suporte a Service Worker para funcionamento offline completo
   </script>
-
-  <script src="sw.js"></script>
 </body>
 </html>
